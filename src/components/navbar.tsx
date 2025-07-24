@@ -50,7 +50,7 @@ export function Navbar() {
                   退出
                 </Button>
               </>
-            ) : !loading ? (
+            ) : !isLoading ? (
               <Link href="/auth/signin">
                 <Button size="sm">
                   登录

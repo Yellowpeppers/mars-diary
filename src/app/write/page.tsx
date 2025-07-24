@@ -7,6 +7,7 @@ import { Rocket, ArrowLeft, Loader2, Save, Image as ImageIcon } from 'lucide-rea
 import { earthDateToSol, formatSolDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 import { Navbar } from '@/components/navbar'
+import { supabase } from '@/lib/supabase'
 
 interface GeneratedContent {
   marsDiary: string
@@ -144,15 +145,26 @@ export default function WritePage() {
   }
 
   const handleSave = async () => {
-    if (!generatedContent) return
+    if (!generatedContent || !generatedContent.marsDiary) {
+      setError('请先生成火星日记')
+      return
+    }
 
     setIsSaving(true)
     setError('')
     try {
+      // 获取当前用户的访问令牌
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        throw new Error('用户未登录')
+      }
+
       const response = await fetch('/api/diary/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           earthDiary,
@@ -166,6 +178,12 @@ export default function WritePage() {
 
       if (!response.ok) {
         throw new Error(data.error || '保存失败')
+      }
+
+      // 检查是否需要数据库设置
+      if (data.needsSetup) {
+        alert('数据库表尚未创建，请先在 Supabase 控制台执行 supabase-setup.sql 脚本来创建必要的数据库表。')
+        return
       }
 
       alert('日记保存成功！')

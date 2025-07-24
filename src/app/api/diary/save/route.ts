@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import { earthDateToSol } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
@@ -14,10 +14,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 获取当前用户
+    // 从请求头获取认证令牌
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '缺少认证令牌' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.substring(7) // 移除 'Bearer ' 前缀
+    
+    // 创建带有用户令牌的 Supabase 客户端
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    )
+    
+    // 设置用户会话
+    await supabase.auth.setSession({
+      access_token: token,
+      refresh_token: ''
+    })
+    
+    // 使用令牌获取用户信息
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
+    console.log('认证结果:', { user: user?.id, authError })
+    
     if (authError || !user) {
+      console.error('认证失败:', authError)
       return NextResponse.json(
         { error: '用户未认证' },
         { status: 401 }
@@ -28,6 +61,16 @@ export async function POST(request: NextRequest) {
     const currentDate = new Date().toISOString()
 
     // 保存日记到数据库
+    console.log('尝试插入数据:', {
+      user_id: user.id,
+      earth_diary: earthDiary?.substring(0, 50) + '...',
+      mars_diary: marsDiary?.substring(0, 50) + '...',
+      mars_event: marsEvent,
+      image_url: imageUrl,
+      sol_number: currentSol,
+      created_at: currentDate
+    })
+    
     const { data, error } = await supabase
       .from('diary_entries')
       .insert({
@@ -44,6 +87,19 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('保存日记错误:', error)
+      
+      // 如果表不存在，返回特殊提示
+      if (error.message.includes('relation "diary_entries" does not exist')) {
+        return NextResponse.json(
+          { 
+            error: '数据库表尚未创建，请先执行 supabase-setup.sql 脚本',
+            success: false,
+            needsSetup: true
+          },
+          { status: 200 }
+        )
+      }
+      
       return NextResponse.json(
         { error: '保存日记失败，请稍后重试' },
         { status: 500 }
@@ -67,7 +123,37 @@ export async function POST(request: NextRequest) {
 // 获取用户的日记列表
 export async function GET(request: NextRequest) {
   try {
-    // 获取当前用户
+    // 检查认证头
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '缺少认证令牌' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.substring(7) // 移除 'Bearer ' 前缀
+    
+    // 创建带有用户令牌的 Supabase 客户端
+     const supabase = createClient(
+       process.env.NEXT_PUBLIC_SUPABASE_URL!,
+       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+       {
+         global: {
+           headers: {
+             Authorization: `Bearer ${token}`
+           }
+         }
+       }
+     )
+     
+     // 设置用户会话
+     await supabase.auth.setSession({
+       access_token: token,
+       refresh_token: ''
+     })
+     
+     // 获取当前用户
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {

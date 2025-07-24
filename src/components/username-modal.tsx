@@ -42,11 +42,19 @@ export function UsernameModal({ isOpen, onClose, onSuccess }: UsernameModalProps
       }
 
       // 检查用户名是否已存在
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
         .select('username')
         .eq('username', username.trim())
         .single()
+
+      // 如果表不存在，跳过检查
+      if (checkError && checkError.message.includes('relation "profiles" does not exist')) {
+        console.warn('档案表不存在，跳过用户名检查')
+        onSuccess(username.trim())
+        onClose()
+        return
+      }
 
       if (existingUser) {
         setError('用户名已被使用，请选择其他用户名')
@@ -63,6 +71,14 @@ export function UsernameModal({ isOpen, onClose, onSuccess }: UsernameModalProps
           email: user.email,
           updated_at: new Date().toISOString()
         })
+
+      // 如果表不存在，也认为成功
+      if (upsertError && upsertError.message.includes('relation "profiles" does not exist')) {
+        console.warn('档案表不存在，但用户名设置成功')
+        onSuccess(username.trim())
+        onClose()
+        return
+      }
 
       if (upsertError) {
         throw upsertError

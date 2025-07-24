@@ -7,6 +7,8 @@ import { Rocket, ArrowLeft, Calendar, Image as ImageIcon, Share2, Loader2 } from
 import { formatSolDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 import { Navbar } from '@/components/navbar'
+import { supabase } from '@/lib/supabase'
+import { DiaryEntry } from '@/lib/supabase'
 
 // Mock data for demonstration
 const mockDiaries = [
@@ -33,6 +35,9 @@ const mockDiaries = [
 export default function TimelinePage() {
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
+  const [diaries, setDiaries] = useState<DiaryEntry[]>([])
+  const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null)
+  const [isLoadingDiaries, setIsLoadingDiaries] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -40,10 +45,57 @@ export default function TimelinePage() {
     }
   }, [isAuthenticated, isLoading, router])
 
-  if (isLoading) {
+  // 获取用户的日记数据
+  useEffect(() => {
+    const fetchDiaries = async () => {
+      if (!isAuthenticated) return
+      
+      try {
+        setIsLoadingDiaries(true)
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session?.access_token) {
+          console.error('用户未登录')
+          return
+        }
+
+        const response = await fetch('/api/diary/list', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setDiaries(data.diaries || [])
+        } else {
+          console.error('获取日记失败:', response.statusText)
+        }
+      } catch (error) {
+        console.error('获取日记时出错:', error)
+      } finally {
+        setIsLoadingDiaries(false)
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchDiaries()
+    }
+  }, [isAuthenticated])
+
+  if (isLoading || isLoadingDiaries) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-black">
+        <div className="bg-white/10 backdrop-blur-sm">
+          <Navbar />
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-400 mx-auto mb-4" />
+            <p className="text-orange-200">正在加载火星日记...</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -51,20 +103,19 @@ export default function TimelinePage() {
   if (!isAuthenticated) {
     return null
   }
-  const [diaries, setDiaries] = useState(mockDiaries)
-  const [selectedDiary, setSelectedDiary] = useState<typeof mockDiaries[0] | null>(null)
 
-  const handleShare = (diary: typeof mockDiaries[0]) => {
+  const handleShare = (diary: DiaryEntry) => {
+    const solDate = diary.sol_number || 0
     if (navigator.share) {
       navigator.share({
-        title: `火星日记 - ${formatSolDate(diary.sol_date)}`,
+        title: `火星日记 - ${formatSolDate(solDate)}`,
         text: diary.mars_diary.substring(0, 100) + '...',
         url: window.location.href
       })
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(
-        `火星日记 - ${formatSolDate(diary.sol_date)}\n\n${diary.mars_diary}\n\n来自火星日记模拟器`
+        `火星日记 - ${formatSolDate(solDate)}\n\n${diary.mars_diary}\n\n来自火星日记模拟器`
       )
       alert('日记内容已复制到剪贴板！')
     }
@@ -105,7 +156,7 @@ export default function TimelinePage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-orange-400 font-semibold">
-                      {formatSolDate(diary.sol_date)}
+                      {formatSolDate(diary.sol_number || 0)}
                     </span>
                     <span className="text-orange-300 text-sm">
                       {new Date(diary.created_at).toLocaleDateString('zh-CN')}
@@ -133,7 +184,7 @@ export default function TimelinePage() {
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h3 className="text-2xl font-bold text-white mb-2">
-                        {formatSolDate(selectedDiary.sol_date)}
+                        {formatSolDate(selectedDiary.sol_number || 0)}
                       </h3>
                       <p className="text-orange-300">
                         {new Date(selectedDiary.created_at).toLocaleDateString('zh-CN', {

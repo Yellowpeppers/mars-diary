@@ -11,8 +11,9 @@ export interface DiaryEntry {
   user_id: string
   earth_diary: string
   mars_diary: string
+  mars_event?: string
   image_url?: string
-  sol_date: number
+  sol_number?: number
   created_at: string
   updated_at: string
 }

@@ -65,11 +65,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const checkUserProfile = async (user: User) => {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
+
+      if (error) {
+        // 如果表不存在或其他错误，跳过档案检查
+        console.warn('档案表可能不存在，跳过档案检查:', error.message)
+        setUserProfile(null)
+        return
+      }
 
       setUserProfile(profile)
       
@@ -79,8 +86,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error) {
       console.error('获取用户档案错误:', error)
-      // 如果没有档案记录，也显示设置用户名的模态框
-      setShowUsernameModal(true)
+      // 如果没有档案记录，设置为 null 但不显示模态框
+      setUserProfile(null)
     }
   }
 
