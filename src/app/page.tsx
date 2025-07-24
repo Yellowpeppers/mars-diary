@@ -1,15 +1,16 @@
 'use client'
 
-import { useAuth } from '@/components/providers/auth-provider'
+import { useAuth } from '@/hooks/use-auth'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { PenTool, Clock, Rocket, Globe } from 'lucide-react'
+import { Navbar } from '@/components/navbar'
 
 export default function Home() {
-  const { user, loading } = useAuth()
+  const { user, isLoading } = useAuth()
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">加载中...</div>
@@ -19,6 +20,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100">
+      <Navbar />
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">

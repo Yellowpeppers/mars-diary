@@ -147,12 +147,33 @@ export default function WritePage() {
     if (!generatedContent) return
 
     setIsSaving(true)
+    setError('')
     try {
-      // TODO: Implement save to Supabase
-      // For now, just show success message
-      alert('日记已保存！请先设置Supabase配置以启用完整功能。')
+      const response = await fetch('/api/diary/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          earthDiary,
+          marsDiary: generatedContent.marsDiary,
+          marsEvent: generatedContent.marsEvent,
+          imageUrl: generatedContent.imageUrl
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '保存失败')
+      }
+
+      alert('日记保存成功！')
+      // 可以选择重定向到时间线页面
+      // router.push('/timeline')
     } catch (err) {
-      setError('保存失败，请稍后重试')
+      console.error('保存日记错误:', err)
+      setError(err instanceof Error ? err.message : '保存失败，请稍后重试')
     } finally {
       setIsSaving(false)
     }

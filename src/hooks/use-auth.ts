@@ -1,35 +1,34 @@
 'use client'
 
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useContext } from 'react'
+import { AuthContext } from '@/components/providers/auth-provider'
 import { useRouter } from 'next/navigation'
 
 export function useAuth() {
-  const { data: session, status } = useSession()
+  const context = useContext(AuthContext)
   const router = useRouter()
+
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+
+  const { user, isLoading, signOut, userProfile } = context
 
   const login = () => {
     router.push('/auth/signin')
   }
 
   const logout = async () => {
-    await signOut({ callbackUrl: '/' })
-  }
-
-  const loginWithGoogle = () => {
-    signIn('google', { callbackUrl: '/' })
-  }
-
-  const loginWithEmail = (email: string) => {
-    signIn('email', { email, callbackUrl: '/' })
+    await signOut()
+    router.push('/')
   }
 
   return {
-    user: session?.user,
-    isLoading: status === 'loading',
-    isAuthenticated: !!session,
+    user,
+    isLoading,
+    isAuthenticated: !!user,
     login,
     logout,
-    loginWithGoogle,
-    loginWithEmail,
+    userProfile,
   }
 }
