@@ -1,4 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+
+// 安全性检查：确保API密钥存在
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error('GEMINI_API_KEY environment variable is required')
+}
+
+if (!process.env.ARK_API_KEY) {
+  throw new Error('ARK_API_KEY environment variable is required')
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,9 +23,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 从火星日记中提取关键元素生成图像提示词
-    const imagePrompt = `火星表面风景，红色星球地表，未来主义圆顶城市背景，火星殖民者日常生活，电影级光照，精细数字艺术，4K分辨率，科幻概念艺术`
+    // 第一步：使用Gemini提取场景描述
+    const sceneExtractionPrompt = `You are an art director in a dystopian Mars universe.
+From the diary below, pick EXACTLY one scene that
+1) features the protagonist clearly (main character in action or close-up) AND
+2) provides a strong environmental context.
+Return the scene as one Chinese sentence, ≤ 30 characters, without extra words.
+Diary:
+"""
+${marsDiary}
+"""`
 
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const sceneResult = await model.generateContent(sceneExtractionPrompt)
+    const sceneDescription = sceneResult.response.text().trim()
+    
+    console.log('提取的场景描述:', sceneDescription)
+
+    // 第二步：将中文场景描述转换为英文并组装专业prompt
+    const translatePrompt = `Translate this Chinese scene description to English, keeping it concise and vivid: "${sceneDescription}"`
+    const translateResult = await model.generateContent(translatePrompt)
+    const englishScene = translateResult.response.text().trim()
+    
+    console.log('英文场景描述:', englishScene)
+
+    // 组装最终的图像生成prompt
+    const imagePrompt = `${englishScene}, atmospheric wide shot, protagonist in foreground, dystopian & decayed sci-fi aesthetic, desaturated color palette, cracked surfaces, dust-filled air, chiaroscuro lighting, ultra-sharp 8K details, colors: pale orange (#E85C35), frost gray (#8A8F9A), deep black (#0B0E12), style of Moebius meets Simon Stålenhag, no text, no watermark, ruined habitat, melancholic mood`
+    
+    console.log('最终图像prompt:', imagePrompt)
+
+    // 第三步：调用豆包API生成图像
     const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
       method: 'POST',
       headers: {
@@ -23,8 +62,10 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'doubao-seedream-3-0-t2i-250415',
         prompt: imagePrompt,
+        negative_prompt: 'blurry, low-res, duplicate, extra limbs, text, logo, watermark, jpeg artifacts, cartoon, anime, bright colors, cheerful mood',
         n: 1,
-        size: '512x512'
+        size: '1024x1024',
+        quality: 'hd'
       }),
     })
 
@@ -51,7 +92,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       imageUrl: imageUrl,
-      status: 'completed'
+      status: 'completed',
+      sceneDescription: sceneDescription,
+      englishScene: englishScene,
+      finalPrompt: imagePrompt
     })
   } catch (error) {
     console.error('生成图像时出错:', error)
