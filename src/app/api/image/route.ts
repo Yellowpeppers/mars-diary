@@ -11,85 +11,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract key elements from mars diary for image prompt
-    const imagePrompt = `A beautiful Mars landscape scene, red planet surface, futuristic dome city in background, Mars colonist daily life, cinematic lighting, detailed digital art, 4k resolution, science fiction concept art`
+    // 从火星日记中提取关键元素生成图像提示词
+    const imagePrompt = `火星表面风景，红色星球地表，未来主义圆顶城市背景，火星殖民者日常生活，电影级光照，精细数字艺术，4K分辨率，科幻概念艺术`
 
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+        'Authorization': `Bearer ${process.env.ARK_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: 'be04660a5b93ef2aff61e3668dedb4cbeb14941e62a3fd5998364a32d613e35e',
-        input: {
-          prompt: imagePrompt,
-          width: 512,
-          height: 512,
-          num_outputs: 1,
-          scheduler: 'K_EULER',
-          num_inference_steps: 20,
-          guidance_scale: 7.5,
-        },
+        model: 'doubao-seedream-3-0-t2i-250415',
+        prompt: imagePrompt,
+        n: 1,
+        size: '512x512'
       }),
     })
 
     if (!response.ok) {
-      throw new Error(`Replicate API error: ${response.status}`)
+      const errorData = await response.json()
+      console.error('豆包API错误:', errorData)
+      throw new Error(`豆包API错误: ${response.status}`)
     }
 
-    const prediction = await response.json()
+    const result = await response.json()
 
     return NextResponse.json({
-      predictionId: prediction.id,
-      status: prediction.status,
+      imageUrl: result.data[0].url,
+      status: 'completed'
     })
   } catch (error) {
     console.error('生成图像时出错:', error)
     return NextResponse.json(
       { error: '生成图像时出现错误，请稍后重试' },
-      { status: 500 }
-    )
-  }
-}
-
-// Check image generation status
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const predictionId = searchParams.get('id')
-
-    if (!predictionId) {
-      return NextResponse.json(
-        { error: '需要预测ID' },
-        { status: 400 }
-      )
-    }
-
-    const response = await fetch(
-      `https://api.replicate.com/v1/predictions/${predictionId}`,
-      {
-        headers: {
-          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-        },
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(`Replicate API error: ${response.status}`)
-    }
-
-    const prediction = await response.json()
-
-    return NextResponse.json({
-      status: prediction.status,
-      output: prediction.output,
-      error: prediction.error,
-    })
-  } catch (error) {
-    console.error('检查图像状态时出错:', error)
-    return NextResponse.json(
-      { error: '检查图像状态时出现错误' },
       { status: 500 }
     )
   }
