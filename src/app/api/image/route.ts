@@ -24,24 +24,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 第一步：使用Gemini提取场景描述
-    const sceneExtractionPrompt = `You are an art director in a dystopian Mars universe.
-From the diary below, pick EXACTLY one scene that
-1) features the protagonist clearly (main character in action or close-up) AND
-2) provides a strong environmental context.
-Return the scene as one Chinese sentence, ≤ 30 characters, without extra words.
-Diary:
-"""
-${marsDiary}
-"""`
+    const sceneExtractionPrompt = `从以下火星日记中提取最具视觉冲击力的一个场景，用一句50-80字的中文描述。必须包含主角动作和环境细节。
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+火星日记：${marsDiary}
+
+只返回场景描述，不要解释：`
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
     const sceneResult = await model.generateContent(sceneExtractionPrompt)
     const sceneDescription = sceneResult.response.text().trim()
     
     console.log('提取的场景描述:', sceneDescription)
 
     // 第二步：将中文场景描述转换为英文并组装专业prompt
-    const translatePrompt = `Translate this Chinese scene description to English, keeping it concise and vivid: "${sceneDescription}"`
+    const translatePrompt = `将以下中文场景描述翻译成简洁生动的英文，只返回翻译结果："${sceneDescription}"`
     const translateResult = await model.generateContent(translatePrompt)
     const englishScene = translateResult.response.text().trim()
     
