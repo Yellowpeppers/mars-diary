@@ -26,3 +26,46 @@ body {
     text-wrap: balance;
   }
 }
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  /* 确保触摸目标足够大 */
+  button, a, input, textarea {
+    min-height: 44px;
+  }
+  
+  /* 优化文本可读性 */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  /* 优化滚动体验 */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* 防止横向滚动 */
+  html, body {
+    overflow-x: hidden;
+  }
+}
+
+/* 改善触摸反馈 */
+button, a {
+  -webkit-tap-highlight-color: rgba(255, 165, 0, 0.2);
+  tap-highlight-color: rgba(255, 165, 0, 0.2);
+}
+
+/* 优化输入框在移动端的体验 */
+input, textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 8px;
+}
+
+/* 确保图片响应式 */
+img {
+  max-width: 100%;
+  height: auto;
+}

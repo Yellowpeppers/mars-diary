@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/components/providers/auth-provider";
+import { ClientAuthProvider } from '@/components/providers/client-auth-provider';
 
 export const metadata: Metadata = {
   title: "火星日记模拟器",
@@ -15,9 +15,9 @@ export default function RootLayout({
   return (
     <html lang="zh">
       <body>
-        <AuthProvider>
+        <ClientAuthProvider>
           {children}
-        </AuthProvider>
+        </ClientAuthProvider>
       </body>
     </html>
   );

@@ -30,37 +30,93 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [showUsernameModal, setShowUsernameModal] = useState(false)
 
   useEffect(() => {
-    // 获取当前用户
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      if (user) {
-        await checkUserProfile(user)
-      }
-      
+    // 设置超时机制，避免无限加载
+    const timeout = setTimeout(() => {
+      console.warn('认证超时，强制设置为未加载状态')
       setIsLoading(false)
+    }, 10000) // 10秒超时
+
+    // 初始化认证状态
+    const initializeAuth = async () => {
+      try {
+        // 首先尝试获取当前会话
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.warn('获取会话失败:', sessionError.message)
+          // 会话错误不应该阻止初始化，继续尝试获取用户
+        }
+
+        if (session?.user) {
+          console.log('找到有效会话，用户ID:', session.user.id)
+          setUser(session.user)
+          await checkUserProfile(session.user)
+        } else {
+          console.log('没有有效会话，尝试获取用户信息')
+          // 如果没有会话，尝试获取用户信息
+          try {
+            const { data: { user }, error: userError } = await supabase.auth.getUser()
+            if (userError) {
+              // 如果是AuthSessionMissingError，这是正常的（用户未登录）
+              if (userError.message.includes('Auth session missing')) {
+                console.log('用户未登录（正常状态）')
+              } else {
+                console.error('获取用户信息失败:', userError.message)
+              }
+            } else if (user) {
+              console.log('找到用户信息，用户ID:', user.id)
+              setUser(user)
+              await checkUserProfile(user)
+            } else {
+              console.log('没有找到用户信息')
+            }
+          } catch (error: any) {
+            console.warn('获取用户信息异常:', error.message)
+          }
+        }
+        
+        clearTimeout(timeout)
+        setIsLoading(false)
+      } catch (error) {
+        console.error('初始化认证失败:', error)
+        clearTimeout(timeout)
+        setIsLoading(false)
+      }
     }
 
-    getUser()
+    initializeAuth()
 
     // 监听认证状态变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null)
+        console.log('认证状态变化:', event, session?.user?.id)
         
-        if (session?.user) {
-          await checkUserProfile(session.user)
-        } else {
-          setUserProfile(null)
-          setShowUsernameModal(false)
+        try {
+          if (event === 'SIGNED_OUT' || !session) {
+            setUser(null)
+            setUserProfile(null)
+            setShowUsernameModal(false)
+          } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setUser(session.user)
+            if (session.user) {
+              await checkUserProfile(session.user)
+            }
+          }
+          
+          clearTimeout(timeout)
+          setIsLoading(false)
+        } catch (error) {
+          console.error('认证状态变化处理失败:', error)
+          clearTimeout(timeout)
+          setIsLoading(false)
         }
-        
-        setIsLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const checkUserProfile = async (user: User) => {
@@ -92,7 +148,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      // 立即清理本地状态
+      setUser(null)
+      setUserProfile(null)
+      setShowUsernameModal(false)
+      
+      // 调用 Supabase 登出
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('登出错误:', error.message)
+      }
+    } catch (error) {
+      console.error('登出异常:', error)
+    }
   }
 
   const handleUsernameSuccess = (username: string) => {

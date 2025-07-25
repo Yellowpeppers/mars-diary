@@ -47,13 +47,13 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto p-6">
-      <div className="space-y-4">
+    <Card className="w-full max-w-md mx-auto p-4 sm:p-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-xl sm:text-2xl font-bold">
             {isSignUp ? '注册账户' : '登录'}
           </h2>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">
             {isSignUp ? '创建新账户开始记录火星日记' : '登录继续你的火星之旅'}
           </p>
         </div>
@@ -66,6 +66,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="text-sm sm:text-base"
             />
           </div>
           <div>
@@ -76,11 +77,12 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              className="text-sm sm:text-base"
             />
           </div>
           <Button
             type="submit"
-            className="w-full"
+            className="w-full text-sm sm:text-base"
             disabled={loading}
           >
             {loading ? '处理中...' : (isSignUp ? '注册' : '登录')}
@@ -88,7 +90,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         </form>
 
         {message && (
-          <div className={`text-center text-sm ${
+          <div className={`text-center text-xs sm:text-sm ${
             message.includes('成功') ? 'text-green-600' : 'text-red-600'
           }`}>
             {message}
@@ -99,7 +101,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
           <button
             type="button"
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-blue-600 hover:underline text-sm"
+            className="text-blue-600 hover:underline text-xs sm:text-sm"
           >
             {isSignUp ? '已有账户？点击登录' : '没有账户？点击注册'}
           </button>

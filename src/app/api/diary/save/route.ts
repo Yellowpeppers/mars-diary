@@ -27,27 +27,14 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7) // 移除 'Bearer ' 前缀
     
-    // 创建带有用户令牌的 Supabase 客户端
+    // 创建服务角色客户端用于验证令牌
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
-    // 设置用户会话
-    await supabase.auth.setSession({
-      access_token: token,
-      refresh_token: ''
-    })
-    
-    // 使用令牌获取用户信息
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // 验证用户令牌
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     console.log('认证结果:', { user: user?.id, authError })
     
@@ -136,29 +123,17 @@ export async function GET(request: NextRequest) {
 
     const token = authHeader.substring(7) // 移除 'Bearer ' 前缀
     
-    // 创建带有用户令牌的 Supabase 客户端
-     const supabase = createClient(
-       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-       {
-         global: {
-           headers: {
-             Authorization: `Bearer ${token}`
-           }
-         }
-       }
-     )
+    // 创建服务角色客户端用于验证令牌
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
      
-     // 设置用户会话
-     await supabase.auth.setSession({
-       access_token: token,
-       refresh_token: ''
-     })
-     
-     // 获取当前用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // 验证用户令牌
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('认证失败:', authError)
       return NextResponse.json(
         { error: '用户未认证' },
         { status: 401 }
