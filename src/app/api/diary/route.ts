@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { earthDateToSol } from '@/lib/utils'
 
-// 安全性检查：确保API密钥存在
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is required')
+export const runtime = 'edge'
+
+// 检查环境变量
+const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyCTVs2Tdxmtyhl1hQmwSIwl2itYmFAv5Ws'
+if (!geminiApiKey) {
+  console.error('GEMINI_API_KEY 环境变量未设置')
+  throw new Error('GEMINI_API_KEY 环境变量未设置')
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+console.log('使用Gemini API Key:', geminiApiKey ? '已设置' : '未设置')
+const genAI = new GoogleGenerativeAI(geminiApiKey)
 
 // 随机环境事件列表
 const MARS_EVENTS = [

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { earthDateToSol } from '@/lib/utils'
 
+export const runtime = 'edge'
+
 export async function POST(request: NextRequest) {
   try {
     const { earthDiary, marsDiary, marsEvent, imageUrl } = await request.json()

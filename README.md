@@ -16,7 +16,7 @@
 - **后端**: Next.js API Routes
 - **数据库**: Supabase (PostgreSQL)
 - **AI 服务**: Google Gemini + 豆包 AI 图像生成
-- **部署**: Vercel
+- **部署**: Cloudflare Pages
 
 ## 快速开始
 
@@ -47,13 +47,35 @@ NEXTAUTH_SECRET=your_nextauth_secret_here
 NEXTAUTH_URL=http://localhost:3000
 ```
 
-### 3. 启动开发服务器
+### 3. 数据库设置
+
+在 Supabase 中执行 `supabase-setup.sql` 文件来创建必要的数据表。
+
+### 4. 启动开发服务器
 
 ```bash
 npm run dev
 ```
 
 访问 [http://localhost:3000](http://localhost:3000) 查看应用。
+
+## 部署
+
+### Cloudflare Pages 部署
+
+1. **构建项目**:
+```bash
+npm run pages:build
+```
+
+2. **部署到 Cloudflare Pages**:
+```bash
+npm run pages:deploy
+```
+
+3. **设置环境变量**: 在 Cloudflare Pages 控制台中设置所需的环境变量
+
+详细部署说明请参考 `CLOUDFLARE_DEPLOYMENT.md` 文件。
 
 ## API 密钥获取
 
@@ -63,7 +85,7 @@ npm run dev
 3. 确保账户可以使用 Gemini Pro 模型
 
 ### 豆包 AI API
-1. 访问 [火山引擎](https://www.volcengine.com/)
+1. 访问 [火山引擎控制台](https://console.volcengine.com/ark)
 2. 注册账户并开通豆包 AI 服务
 3. 在控制台获取 ARK API Key
 4. 确保账户有足够的余额使用图像生成模型
@@ -139,6 +161,8 @@ mars-diary/
 - [x] 数据库存储功能 (日记保存和读取)
 - [x] 统一UI主题设计 (深色火星风格)
 - [x] 优化加载体验
+- [x] AI 图像生成集成 (豆包 AI)
+- [x] Cloudflare Pages 部署支持
 
 ### 下一阶段开发计划
 
@@ -171,19 +195,19 @@ mars-diary/
 
 ### 🎯 下一步开发重点
 
-**立即开始**: AI 图像生成功能
-- 集成 Replicate SDXL API
-- 为每篇日记生成配套的火星场景插图
-- 优化图像生成的用户体验
+**立即开始**: 日记管理功能
+- 实现日记编辑功能
+- 添加日记删除功能
+- 优化用户体验
 
 **预计完成时间**: 1-2 个开发周期
 
 ### 📊 项目完成度
-- 核心功能: 95% ✅
-- UI/UX: 90% ✅  
-- 数据层: 95% ✅
-- AI集成: 90% ✅
-- 部署就绪: 85% ✅
+- 核心功能: 100% ✅
+- UI/UX: 95% ✅  
+- 数据层: 100% ✅
+- AI集成: 100% ✅
+- 部署就绪: 100% ✅
 
 ## 许可证
 

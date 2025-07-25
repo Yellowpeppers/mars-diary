@@ -70,7 +70,13 @@ export default function TimelinePage() {
           const data = await response.json()
           setDiaries(data.diaries || [])
         } else {
-          console.error('获取日记失败:', response.statusText)
+          const errorData = await response.json().catch(() => ({ error: '未知错误' }))
+          console.error('获取日记失败:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData.error || '未知错误'
+          })
+          alert(`获取日记失败: ${errorData.error || response.statusText}`)
         }
       } catch (error) {
         console.error('获取日记时出错:', error)

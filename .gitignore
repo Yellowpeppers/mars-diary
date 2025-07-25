@@ -46,3 +46,11 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Deployment
+.vercel
+dist/
+
+# Cloudflare
+.wrangler/
+wrangler.toml.bak
