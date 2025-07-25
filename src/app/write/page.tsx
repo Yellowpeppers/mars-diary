@@ -102,46 +102,19 @@ export default function WritePage() {
 
       const data = await response.json()
       
-      // Poll for image completion
-      pollImageStatus(data.predictionId)
+      // 豆包API直接返回图片URL，无需轮询
+      if (data.imageUrl) {
+        setGeneratedContent(prev => prev ? {
+          ...prev,
+          imageUrl: data.imageUrl
+        } : null)
+      }
+      
+      setIsGeneratingImage(false)
     } catch (err) {
       console.error('图像生成错误:', err)
       setIsGeneratingImage(false)
     }
-  }
-
-  const pollImageStatus = async (predictionId: string) => {
-    const maxAttempts = 30
-    let attempts = 0
-
-    const poll = async () => {
-      try {
-        const response = await fetch(`/api/image?id=${predictionId}`)
-        const data = await response.json()
-
-        if (data.status === 'succeeded' && data.output) {
-          setGeneratedContent(prev => prev ? {
-            ...prev,
-            imageUrl: data.output[0],
-            predictionId
-          } : null)
-          setIsGeneratingImage(false)
-        } else if (data.status === 'failed') {
-          console.error('图像生成失败:', data.error)
-          setIsGeneratingImage(false)
-        } else if (attempts < maxAttempts) {
-          attempts++
-          setTimeout(poll, 2000)
-        } else {
-          setIsGeneratingImage(false)
-        }
-      } catch (err) {
-        console.error('检查图像状态错误:', err)
-        setIsGeneratingImage(false)
-      }
-    }
-
-    poll()
   }
 
   const handleSave = async () => {

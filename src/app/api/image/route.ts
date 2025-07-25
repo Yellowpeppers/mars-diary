@@ -35,9 +35,22 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await response.json()
+    console.log('豆包API响应:', JSON.stringify(result, null, 2))
+
+    // 检查响应格式并提取图片URL
+    let imageUrl = null
+    if (result.data && result.data.length > 0 && result.data[0].url) {
+      imageUrl = result.data[0].url
+    } else if (result.data && result.data.length > 0 && result.data[0].b64_json) {
+      // 如果返回的是base64格式，转换为data URL
+      imageUrl = `data:image/png;base64,${result.data[0].b64_json}`
+    } else {
+      console.error('无法从豆包API响应中提取图片URL:', result)
+      throw new Error('豆包API响应格式异常')
+    }
 
     return NextResponse.json({
-      imageUrl: result.data[0].url,
+      imageUrl: imageUrl,
       status: 'completed'
     })
   } catch (error) {
