@@ -296,9 +296,14 @@ export default function WritePage() {
                       </div>
                     ) : generatedContent.imageUrl ? (
                       <img
-                        src={generatedContent.imageUrl}
+                        src={`/api/proxy-image?url=${encodeURIComponent(generatedContent.imageUrl)}`}
                         alt="火星场景"
                         className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                      if (generatedContent.imageUrl) {
+                        e.currentTarget.src = generatedContent.imageUrl
+                      }
+                    }}
                       />
                     ) : (
                       <div className="text-center p-4">

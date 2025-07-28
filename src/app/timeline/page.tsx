@@ -113,11 +113,9 @@ export default function TimelinePage() {
   }, [isAuthenticated])
 
   const handleShareText = (diary: DiaryEntry) => {
-    const solDate = diary.sol_number || 0
-    const shareText = `火星日记 - ${formatSolDate(solDate)}\n\n地球日记：\n${diary.earth_diary}\n\n火星日记：\n${diary.mars_diary}\n\n来自火星日记模拟器`
-    
-    navigator.clipboard.writeText(shareText)
-    showSuccess('文字已复制到剪贴板！')
+    // 只复制火星日记内容
+    navigator.clipboard.writeText(diary.mars_diary)
+    showSuccess('火星日记已复制到剪贴板！')
     setShowShareOptions(false)
   }
 
@@ -128,20 +126,44 @@ export default function TimelinePage() {
     }
     
     try {
-      const response = await fetch(diary.image_url)
+      // 通过代理API下载图片
+      const response = await fetch(`/api/proxy-image?url=${encodeURIComponent(diary.image_url)}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const blob = await response.blob()
+      
+      // 检查blob类型
+      if (!blob.type.startsWith('image/')) {
+        throw new Error('下载的文件不是图片格式')
+      }
+      
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `mars-diary-${formatSolDate(diary.sol_number || 0)}.jpg`
+      
+      // 根据实际图片类型设置文件扩展名
+      const extension = blob.type.split('/')[1] || 'jpg'
+      link.download = `mars-diary-${formatSolDate(diary.sol_number || 0)}.${extension}`
+      
+      // 确保链接在DOM中
+      link.style.display = 'none'
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      
+      // 清理
+      setTimeout(() => {
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      }, 100)
+      
       showSuccess('图片已下载！')
       setShowShareOptions(false)
     } catch (error) {
-      showError('下载图片失败')
+      console.error('下载图片失败:', error)
+      showError(`下载图片失败: ${error instanceof Error ? error.message : '网络错误，请稍后重试'}`)
     }
   }
 
@@ -357,9 +379,14 @@ export default function TimelinePage() {
                         <h4 className="text-base font-semibold text-white mb-2">火星场景</h4>
                         <div className="aspect-video bg-black/50 border border-orange-500/30 rounded-lg overflow-hidden">
                           <img
-                            src={selectedDiary.image_url}
+                            src={`/api/proxy-image?url=${encodeURIComponent(selectedDiary.image_url)}`}
                             alt="火星场景"
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              if (selectedDiary.image_url) {
+                                e.currentTarget.src = selectedDiary.image_url
+                              }
+                            }}
                           />
                         </div>
                       </div>
@@ -535,9 +562,14 @@ export default function TimelinePage() {
                         <h4 className="text-lg font-semibold text-white mb-3">火星场景</h4>
                         <div className="aspect-video bg-black/50 border border-orange-500/30 rounded-lg overflow-hidden">
                           <img
-                            src={selectedDiary.image_url}
+                            src={`/api/proxy-image?url=${encodeURIComponent(selectedDiary.image_url)}`}
                             alt="火星场景"
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              if (selectedDiary.image_url) {
+                                e.currentTarget.src = selectedDiary.image_url
+                              }
+                            }}
                           />
                         </div>
                       </div>

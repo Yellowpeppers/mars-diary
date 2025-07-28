@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { createClient } from '@supabase/supabase-js'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 // 安全性检查：确保API密钥存在
 if (!process.env.GEMINI_API_KEY) {
@@ -12,7 +13,27 @@ if (!process.env.ARK_API_KEY) {
   throw new Error('ARK_API_KEY environment variable is required')
 }
 
+// 检查 Supabase 环境变量
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Missing Supabase environment variables')
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+      }
+    }
+  }
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,19 +98,24 @@ export async function POST(request: NextRequest) {
     console.log('豆包API响应:', JSON.stringify(result, null, 2))
 
     // 检查响应格式并提取图片URL
-    let imageUrl = null
+    let originalImageUrl = null
     if (result.data && result.data.length > 0 && result.data[0].url) {
-      imageUrl = result.data[0].url
+      originalImageUrl = result.data[0].url
     } else if (result.data && result.data.length > 0 && result.data[0].b64_json) {
       // 如果返回的是base64格式，转换为data URL
-      imageUrl = `data:image/png;base64,${result.data[0].b64_json}`
+      originalImageUrl = `data:image/png;base64,${result.data[0].b64_json}`
     } else {
       console.error('无法从豆包API响应中提取图片URL:', result)
       throw new Error('豆包API响应格式异常')
     }
 
+    // 暂时跳过Supabase Storage（网络连接问题），直接使用原始URL
+     // 在生产环境中会重新启用
+     let finalImageUrl = originalImageUrl
+     console.log('Using original Doubao image URL:', originalImageUrl)
+
     return NextResponse.json({
-      imageUrl: imageUrl,
+      imageUrl: finalImageUrl,
       status: 'completed',
       sceneDescription: sceneDescription,
       englishScene: englishScene,

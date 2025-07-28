@@ -88,3 +88,21 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 创建 Storage 桶用于存储图片
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('images', 'images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 创建 Storage 策略
+CREATE POLICY "Allow public read access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'images');
+
+CREATE POLICY "Allow authenticated users to upload" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Allow users to update own files" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'images' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Allow users to delete own files" ON storage.objects
+  FOR DELETE USING (bucket_id = 'images' AND auth.uid()::text = (storage.foldername(name))[1]);
