@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { earthDateToSol } from '@/lib/utils'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 // 检查环境变量
 const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyCTVs2Tdxmtyhl1hQmwSIwl2itYmFAv5Ws'
