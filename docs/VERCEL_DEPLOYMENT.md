@@ -35,7 +35,6 @@
    vercel env add NEXT_PUBLIC_SUPABASE_URL
    vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
    vercel env add SUPABASE_SERVICE_ROLE_KEY
-   vercel env add NEXTAUTH_SECRET
    ```
 
 5. **重新部署**
@@ -72,20 +71,13 @@
 
 | 变量名 | 描述 | 示例值 |
 |--------|------|--------|
-| `GEMINI_API_KEY` | Google Gemini API 密钥 | `AIzaSy...` |
-| `ARK_API_KEY` | 豆包 API 密钥 | `ak-...` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | `https://xxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase 服务角色密钥 | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
-| `NEXTAUTH_SECRET` | NextAuth 密钥 | 随机生成的字符串 |
-| `NEXTAUTH_URL` | 应用 URL | `https://your-app.vercel.app` |
+| `GEMINI_API_KEY` | Google Gemini API 密钥 | `your_gemini_api_key_here` |
+| `ARK_API_KEY` | 豆包 API 密钥 | `your_ark_api_key_here` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | `https://your-project.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 | `your_supabase_anon_key_here` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase 服务角色密钥 | `your_supabase_service_role_key_here` |
 
-### 生成 NEXTAUTH_SECRET
 
-```bash
-# 生成随机密钥
-openssl rand -base64 32
-```
 
 ### 部署后配置
 
@@ -103,11 +95,11 @@ openssl rand -base64 32
 
 #### 1. API 路由 500 错误
 - 检查环境变量是否正确设置
-- 确保 Supabase 数据库表已创建（运行 `supabase-setup.sql`）
+- 确保 Supabase 数据库表已创建（运行 `scripts/supabase-setup.sql`）
 
 #### 2. 认证失败
-- 确保 `NEXTAUTH_URL` 设置为正确的 Vercel 域名
 - 检查 Supabase 的 URL 配置
+- 确保 Supabase 认证设置中的域名配置正确
 
 #### 3. 图片加载失败
 - 检查 `ARK_API_KEY` 是否正确
@@ -125,7 +117,7 @@ openssl rand -base64 32
 2. 点击 "Domains" 标签
 3. 添加你的自定义域名
 4. 按照提示配置 DNS 记录
-5. 更新 `NEXTAUTH_URL` 环境变量为新域名
+5. 更新 Supabase 认证设置中的域名配置
 
 ## 🎉 部署完成！
 

@@ -10,6 +10,8 @@ import { Navbar } from '@/components/navbar'
 import { supabase } from '@/lib/supabase'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast, ToastContainer } from '@/components/ui/toast'
+import { ProgressiveLoader } from '@/components/ui/progressive-loader'
+import { DiaryGenerationSkeleton, ImageSkeleton } from '@/components/ui/skeleton-shimmer'
 
 interface GeneratedContent {
   marsDiary: string
@@ -93,10 +95,18 @@ export default function WritePage() {
     setIsGeneratingImage(true)
     
     try {
+      // 获取当前用户的访问令牌
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        throw new Error('用户未登录')
+      }
+
       const response = await fetch('/api/image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ marsDiary }),
       })
@@ -162,7 +172,7 @@ export default function WritePage() {
         if (data.needsSetup) {
           showError(
             '数据库设置需要',
-            '数据库表尚未创建，请先在 Supabase 控制台执行 supabase-setup.sql 脚本来创建必要的数据库表。'
+            '数据库表尚未创建，请先在 Supabase 控制台执行 scripts/supabase-setup.sql 脚本来创建必要的数据库表。'
           )
           return
         }
@@ -238,8 +248,18 @@ export default function WritePage() {
             </div>
           )}
 
+          {/* Loading State */}
+          {isGenerating && (
+            <div className="bg-black/30 backdrop-blur-sm p-4 sm:p-6 rounded-lg border border-orange-500/20">
+              <ProgressiveLoader 
+                isLoading={isGenerating} 
+                stage={generatedContent ? 'complete' : 'generating'}
+              />
+            </div>
+          )}
+
           {/* Generated Content */}
-          {generatedContent && (
+          {generatedContent && !isGenerating && (
             <div className="bg-black/30 backdrop-blur-sm p-4 sm:p-6 rounded-lg border border-orange-500/20">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 space-y-3 sm:space-y-0">
                 <h2 className="text-xl sm:text-2xl font-bold text-white">你的火星日记</h2>
@@ -290,13 +310,10 @@ export default function WritePage() {
                 <div className="flex flex-col items-center order-1 lg:order-2">
                   <div className="w-full aspect-square max-w-sm lg:max-w-none bg-black/50 border border-orange-500/30 rounded-lg flex items-center justify-center">
                     {isGeneratingImage ? (
-                      <div className="text-center p-4">
-                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-orange-400 mx-auto mb-2" />
-                        <p className="text-orange-200 text-xs sm:text-sm">生成火星场景中...</p>
-                      </div>
+                      <ImageSkeleton className="w-full h-full" />
                     ) : generatedContent.imageUrl ? (
                       <img
-                        src={`/api/proxy-image?url=${encodeURIComponent(generatedContent.imageUrl)}`}
+                        src={`/api/proxy-image?imageUrl=${encodeURIComponent(generatedContent.imageUrl)}`}
                         alt="火星场景"
                         className="w-full h-full object-cover rounded-lg"
                         onError={(e) => {

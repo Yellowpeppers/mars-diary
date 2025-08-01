@@ -1,42 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { downloadImage, uploadImageToSupabase } from '@/lib/image-storage'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 
-// 安全性检查：确保API密钥存在
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is required')
-}
-
-if (!process.env.ARK_API_KEY) {
-  throw new Error('ARK_API_KEY environment variable is required')
-}
-
-// 检查 Supabase 环境变量
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('Missing Supabase environment variables')
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    },
-    global: {
-      headers: {
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-      }
-    }
-  }
-)
-
 export async function POST(request: NextRequest) {
   try {
+    // 安全性检查：确保API密钥存在
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: 'GEMINI_API_KEY environment variable is required' },
+        { status: 500 }
+      )
+    }
+
+    if (!process.env.ARK_API_KEY) {
+      return NextResponse.json(
+        { error: 'ARK_API_KEY environment variable is required' },
+        { status: 500 }
+      )
+    }
+
+    // 获取用户认证信息
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '需要用户认证' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.substring(7)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: '用户认证失败' },
+        { status: 401 }
+      )
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+
     const { marsDiary } = await request.json()
 
     if (!marsDiary) {
@@ -109,17 +119,33 @@ export async function POST(request: NextRequest) {
       throw new Error('豆包API响应格式异常')
     }
 
-    // 暂时跳过Supabase Storage（网络连接问题），直接使用原始URL
-     // 在生产环境中会重新启用
-     let finalImageUrl = originalImageUrl
-     console.log('Using original Doubao image URL:', originalImageUrl)
+    let finalImageUrl = originalImageUrl
+    try {
+      // 上传图片到 Supabase Storage
+      console.log('正在上传图片到 Supabase Storage...')
+      const supabaseImageUrl = await uploadImageToSupabase(originalImageUrl, user.id)
+      console.log('图片已上传到 Supabase:', supabaseImageUrl)
+      finalImageUrl = supabaseImageUrl
+    } catch (uploadError) {
+      console.error('图片上传到 Supabase 失败，尝试本地存储:', uploadError)
+      try {
+        // 如果 Supabase 上传失败，回退到本地存储
+        const localImagePath = await downloadImage(originalImageUrl)
+        console.log('图片已保存到本地:', localImagePath)
+        finalImageUrl = localImagePath
+      } catch (downloadError) {
+        console.error('本地存储也失败，使用原始URL:', downloadError)
+        // 如果都失败，仍然使用原始URL
+      }
+    }
 
     return NextResponse.json({
       imageUrl: finalImageUrl,
       status: 'completed',
       sceneDescription: sceneDescription,
       englishScene: englishScene,
-      finalPrompt: imagePrompt
+      finalPrompt: imagePrompt,
+      originalUrl: originalImageUrl
     })
   } catch (error) {
     console.error('生成图像时出错:', error)

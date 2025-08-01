@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       if (error.message.includes('relation "diary_entries" does not exist')) {
         return NextResponse.json(
           { 
-            error: '数据库表尚未创建，请先执行 supabase-setup.sql 脚本',
+            error: '数据库表尚未创建，请先执行 scripts/supabase-setup.sql 脚本',
             success: false,
             needsSetup: true
           },

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Rocket, ArrowLeft, Calendar, Image as ImageIcon, Share2, Loader2, RefreshCw, ChevronDown, ChevronUp, Copy, Download, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Rocket, ArrowLeft, Calendar, Image as ImageIcon, Share2, Loader2, RefreshCw, ChevronDown, ChevronUp, Copy, Download, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { formatSolDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 import { Navbar } from '@/components/navbar'
@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { DiaryEntry } from '@/lib/supabase'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast, ToastContainer } from '@/components/ui/toast'
+import { CardSkeleton, ImageSkeleton } from '@/components/ui/skeleton-shimmer'
 
 export default function TimelinePage() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -53,7 +54,7 @@ export default function TimelinePage() {
 
       // 使用Promise.race添加超时机制，避免长时间等待
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('请求超时')), 8000) // 减少超时时间
+        setTimeout(() => reject(new Error('请求超时')), 15000) // 与认证超时保持一致
       )
       
       const fetchPromise = fetch('/api/diary/list', {
@@ -93,7 +94,7 @@ export default function TimelinePage() {
     } catch (error) {
       console.error('获取日记时出错:', error)
       if (error instanceof Error && error.message === '请求超时') {
-        showError('网络请求超时，请检查网络连接')
+        showError('网络连接较慢，请稍后重试或检查网络连接')
       } else {
         showError('获取日记失败，请稍后重试')
       }
@@ -127,7 +128,7 @@ export default function TimelinePage() {
     
     try {
       // 通过代理API下载图片
-      const response = await fetch(`/api/proxy-image?url=${encodeURIComponent(diary.image_url)}`)
+      const response = await fetch(`/api/proxy-image?imageUrl=${encodeURIComponent(diary.image_url)}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -167,6 +168,53 @@ export default function TimelinePage() {
     }
   }
 
+  const handleDeleteDiary = async (diary: DiaryEntry) => {
+    if (!confirm(`确定要删除这篇日记吗？\n\n${formatSolDate(diary.sol_number || 0)}\n\n此操作无法撤销。`)) {
+      return
+    }
+
+    try {
+      // 获取当前用户的访问令牌
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        throw new Error('用户未登录')
+      }
+
+      const response = await fetch(`/api/diary/delete?id=${diary.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '删除失败')
+      }
+
+      // 从本地状态中移除已删除的日记
+      setDiaries(prevDiaries => prevDiaries.filter(d => d.id !== diary.id))
+      
+      // 如果删除的是当前选中的日记，选择下一个或清空选择
+      if (selectedDiary?.id === diary.id) {
+        const remainingDiaries = diaries.filter(d => d.id !== diary.id)
+        if (remainingDiaries.length > 0) {
+          setSelectedDiary(remainingDiaries[0])
+        } else {
+          setSelectedDiary(null)
+        }
+      }
+
+      setShowShareOptions(false)
+      showSuccess('日记已删除！')
+    } catch (error) {
+      console.error('删除日记失败:', error)
+      showError(`删除日记失败: ${error instanceof Error ? error.message : '网络错误，请稍后重试'}`)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-black flex items-center justify-center">
@@ -194,9 +242,18 @@ export default function TimelinePage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8">
         {isLoadingDiaries ? (
-          // Loading state
-          <div className="text-center py-12 md:py-20 px-4">
-            <LoadingSpinner text="正在加载火星日记..." size="lg" />
+          // Loading state with skeleton
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-1 space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <CardSkeleton key={i} className="h-24" />
+                ))}
+              </div>
+              <div className="lg:col-span-2">
+                <CardSkeleton className="h-96" />
+              </div>
+            </div>
           </div>
         ) : diaries.length === 0 ? (
           // Empty state
@@ -330,6 +387,13 @@ export default function TimelinePage() {
                                 <span>下载图片</span>
                               </button>
                             )}
+                            <button
+                              onClick={() => handleDeleteDiary(selectedDiary)}
+                              className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/20 transition-colors flex items-center space-x-2 border-t border-orange-500/20"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>删除日记</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -379,7 +443,7 @@ export default function TimelinePage() {
                         <h4 className="text-base font-semibold text-white mb-2">火星场景</h4>
                         <div className="aspect-video bg-black/50 border border-orange-500/30 rounded-lg overflow-hidden">
                           <img
-                            src={`/api/proxy-image?url=${encodeURIComponent(selectedDiary.image_url)}`}
+                            src={`/api/proxy-image?imageUrl=${encodeURIComponent(selectedDiary.image_url)}`}
                             alt="火星场景"
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -562,7 +626,7 @@ export default function TimelinePage() {
                         <h4 className="text-lg font-semibold text-white mb-3">火星场景</h4>
                         <div className="aspect-video bg-black/50 border border-orange-500/30 rounded-lg overflow-hidden">
                           <img
-                            src={`/api/proxy-image?url=${encodeURIComponent(selectedDiary.image_url)}`}
+                            src={`/api/proxy-image?imageUrl=${encodeURIComponent(selectedDiary.image_url)}`}
                             alt="火星场景"
                             className="w-full h-full object-cover"
                             onError={(e) => {

@@ -4,7 +4,7 @@ export const runtime = 'edge'
 
 export async function GET() {
   return NextResponse.json({
-    message: 'Hello from Cloudflare Pages',
+    message: 'Hello from Vercel',
     timestamp: Date.now()
   })
 }

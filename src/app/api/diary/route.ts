@@ -5,7 +5,7 @@ import { earthDateToSol } from '@/lib/utils'
 export const runtime = 'nodejs'
 
 // 检查环境变量
-const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyCTVs2Tdxmtyhl1hQmwSIwl2itYmFAv5Ws'
+const geminiApiKey = process.env.GEMINI_API_KEY
 if (!geminiApiKey) {
   console.error('GEMINI_API_KEY 环境变量未设置')
   throw new Error('GEMINI_API_KEY 环境变量未设置')

@@ -48,6 +48,36 @@ CREATE POLICY "Users can update own diary entries" ON diary_entries
 CREATE POLICY "Users can delete own diary entries" ON diary_entries
   FOR DELETE USING (auth.uid() = user_id);
 
+-- 创建 Storage bucket 用于存储图片
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('diary-images', 'diary-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 创建 Storage 的 RLS 策略
+CREATE POLICY "Users can upload own images" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'diary-images' AND 
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can view own images" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'diary-images' AND 
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can delete own images" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'diary-images' AND 
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Public can view all images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'diary-images');
+
+-- 启用 Storage 的 RLS
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
 -- 创建索引以提高查询性能
 CREATE INDEX IF NOT EXISTS idx_diary_entries_user_id ON diary_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_diary_entries_created_at ON diary_entries(created_at DESC);
@@ -89,20 +119,5 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 创建 Storage 桶用于存储图片
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('images', 'images', true)
-ON CONFLICT (id) DO NOTHING;
-
--- 创建 Storage 策略
-CREATE POLICY "Allow public read access" ON storage.objects
-  FOR SELECT USING (bucket_id = 'images');
-
-CREATE POLICY "Allow authenticated users to upload" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'images' AND auth.role() = 'authenticated');
-
-CREATE POLICY "Allow users to update own files" ON storage.objects
-  FOR UPDATE USING (bucket_id = 'images' AND auth.uid()::text = (storage.foldername(name))[1]);
-
-CREATE POLICY "Allow users to delete own files" ON storage.objects
-  FOR DELETE USING (bucket_id = 'images' AND auth.uid()::text = (storage.foldername(name))[1]);
+-- 启用 Storage 的 RLS
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
