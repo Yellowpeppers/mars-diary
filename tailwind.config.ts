@@ -50,6 +50,8 @@ const config: Config = {
       },
       animation: {
         shimmer: "shimmer 2s ease-in-out infinite",
+        scan: "scan 4s linear infinite",
+        glitch: "glitch 8s ease-in-out infinite",
       },
       keyframes: {
         shimmer: {
@@ -58,6 +60,32 @@ const config: Config = {
           },
           "100%": {
             transform: "translateX(100%)",
+          },
+        },
+        scan: {
+          "0%": {
+            transform: "translateX(-100%)",
+          },
+          "100%": {
+            transform: "translateX(100%)",
+          },
+        },
+        glitch: {
+          "0%, 100%": {
+            opacity: "1",
+            transform: "translateX(0)",
+          },
+          "20%": {
+            opacity: "0.2",
+            transform: "translateX(2px)",
+          },
+          "40%": {
+            opacity: "1",
+            transform: "translateX(-2px)",
+          },
+          "60%": {
+            opacity: "0.8",
+            transform: "translateX(0)",
           },
         },
       },

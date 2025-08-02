@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
         prompt: imagePrompt,
         negative_prompt: 'blurry, low-res, duplicate, extra limbs, text, logo, watermark, jpeg artifacts, cartoon, anime, bright colors, cheerful mood',
         n: 1,
-        size: '1024x1024',
+        size: '1792x1024',
         quality: 'hd'
       }),
     })

@@ -3,6 +3,20 @@
 /* 引入 Tailwind 工具类 */
 @import 'tailwindcss/utilities';
 
+/* 标题发光效果 */
+.hero h1 {
+  position: relative;
+}
+
+.hero h1::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, #E85C3540 0%, transparent 65%);
+  filter: blur(20px);
+  z-index: -1;
+}
+
 :root {
   --background: 210 40% 2%;
   --foreground: 0 0% 93%;
@@ -61,6 +75,82 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Mars Beacon Loader Animations */
+@keyframes mars-beacon-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes mars-beacon-pulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+@keyframes mars-beacon-progress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+@keyframes mars-beacon-blink {
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mars-beacon-spin {
+  animation: mars-beacon-spin 2s linear infinite;
+}
+
+.mars-beacon-pulse {
+  animation: mars-beacon-pulse 1.4s ease-in-out infinite;
+}
+
+.mars-beacon-progress {
+  animation: mars-beacon-progress 3s ease-out infinite;
+}
+
+.mars-beacon-blink {
+  animation: mars-beacon-blink 1s steps(3,end) infinite;
+}
+
+/* Additional Mars Beacon Animations */
+@keyframes mars-beacon-spin-slow {
+  to { stroke-dashoffset: -250; }
+}
+
+@keyframes mars-beacon-pulse-ring {
+  0%, 100% { stroke-dashoffset: 0; }
+  50% { stroke-dashoffset: 80; }
+}
+
+@keyframes mars-beacon-load {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes mars-beacon-ellipsis-blink {
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mars-beacon-spin-slow {
+  animation: mars-beacon-spin-slow 3s linear infinite;
+}
+
+.mars-beacon-pulse-ring {
+  animation: mars-beacon-pulse-ring 1.2s ease-in-out infinite;
+}
+
+.mars-beacon-load {
+  animation: mars-beacon-load 4s linear infinite;
+}
+
+.mars-beacon-ellipsis::after {
+  content: '…';
+  animation: mars-beacon-ellipsis-blink 1s steps(3, end) infinite;
 }
 
 /* 移动端优化 */

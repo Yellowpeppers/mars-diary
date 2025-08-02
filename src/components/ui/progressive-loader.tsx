@@ -121,13 +121,13 @@ export function ProgressiveLoader({
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="text-xs text-orange-300/70 mt-1">
+        <div className="text-xs text-orange-200 mt-1">
           {Math.round(progress)}%
         </div>
       </div>
 
       {/* 当前消息 */}
-      <p className="text-sm text-orange-200/80 font-medium mb-4 animate-pulse">
+      <p className="text-sm text-orange-200 font-medium mb-4 animate-pulse">
         {currentMessage}
       </p>
 
@@ -141,8 +141,8 @@ export function ProgressiveLoader({
               className={cn(
                 'w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300',
                 index <= currentStageIndex
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-orange-900/30 text-orange-400/50'
+                  ? 'bg-[#E85C35] text-white'
+                  : 'bg-[#BF4A2A]/30 text-[#BF4A2A]/50'
               )}
             >
               <StageIcon className="w-3 h-3" />
@@ -153,9 +153,9 @@ export function ProgressiveLoader({
 
       {/* 火星主题装饰点 */}
       <div className="flex justify-center space-x-1 mt-4">
-        <div className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="w-1 h-1 bg-[#BF4A2A] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-1 h-1 bg-[#BF4A2A] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-1 h-1 bg-[#BF4A2A] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     </div>
   )
@@ -172,7 +172,7 @@ export function QuickLoader({
   return (
     <div className={cn('flex items-center justify-center space-x-3', className)}>
       <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
-      <span className="text-sm text-orange-200/80 animate-pulse">{message}</span>
+      <span className="text-sm text-orange-200 animate-pulse">{message}</span>
     </div>
   )
 }

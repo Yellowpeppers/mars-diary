@@ -8,7 +8,7 @@ import { earthDateToSol, formatSolDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 import { Navbar } from '@/components/navbar'
 import { supabase } from '@/lib/supabase'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { FullScreenLoading } from '@/components/ui/loading-spinner'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { ProgressiveLoader } from '@/components/ui/progressive-loader'
 import { DiaryGenerationSkeleton, ImageSkeleton } from '@/components/ui/skeleton-shimmer'
@@ -39,11 +39,7 @@ export default function WritePage() {
   }, [isAuthenticated, isLoading, router])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-black flex items-center justify-center">
-        <LoadingSpinner text="正在准备火星日记编辑器..." size="lg" />
-      </div>
-    )
+    return <FullScreenLoading text="正在准备火星日记编辑器..." />
   }
 
   if (!isAuthenticated) {
@@ -178,10 +174,6 @@ export default function WritePage() {
         }
 
         setIsSaved(true)
-        showSuccess(
-          '保存成功',
-          '火星日记已成功保存！'
-        )
       // 可以选择重定向到时间线页面
       // router.push('/timeline')
     } catch (err) {
@@ -195,40 +187,97 @@ export default function WritePage() {
   const currentSol = earthDateToSol(new Date())
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-black">
-      {/* Navigation */}
-      <div className="bg-white/10 backdrop-blur-sm">
+    <>
+      {/* Full-screen background that covers everything including navbar area */}
+      <div className="fixed inset-0 bg-fixed bg-center bg-cover z-0" style={{backgroundImage: 'url(/room.png)'}}>
+        {/* Enhanced dark overlay with gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B0E12]/60 via-[#0B0E12]/40 to-[#0B0E12]/70 pointer-events-none" />
+        {/* Subtle noise overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-10" 
+             style={{
+               background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' fill='%23CED0D3'/%3E%3C/svg%3E")`,
+               maskImage: 'radial-gradient(circle, white, transparent)'
+             }} />
+      </div>
+      
+      <div className="min-h-screen relative z-10">
+        {/* Navigation */}
+        <div className="fixed top-0 left-0 right-0 z-50">
         <Navbar />
       </div>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       
-      {/* Sol Date Display */}
-      <div className="max-w-4xl mx-auto px-6 pt-4">
-        <div className="text-center text-orange-200">
-          {formatSolDate(currentSol)}
-        </div>
-      </div>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 md:py-8">
-        <div className="space-y-6 md:space-y-8">
-          {/* Input Section */}
-          <div className="bg-black/30 backdrop-blur-sm p-4 sm:p-6 rounded-lg border border-orange-500/20">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">今天在地球上发生了什么？</h2>
-            <textarea
-              value={earthDiary}
-              onChange={(e) => setEarthDiary(e.target.value)}
-              placeholder="写下你今天的经历、感受或想法...\n\n例如：今天和朋友一起去咖啡厅，聊了很久关于未来的计划。虽然外面下着雨，但心情很好。"
-              className="w-full h-32 sm:h-40 p-3 sm:p-4 bg-black/50 border border-orange-500/30 rounded-lg text-white placeholder-orange-300/60 focus:outline-none focus:border-orange-400 resize-none text-sm sm:text-base"
-            />
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-4 space-y-3 sm:space-y-0">
-              <span className="text-orange-300 text-xs sm:text-sm">
-                {earthDiary.length}/20 字符（最少20字符）
-              </span>
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating || earthDiary.length < 20}
-                className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 sm:px-6 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base w-full sm:w-auto"
-              >
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12 mt-16">
+        <div className="grid lg:grid-cols-[18rem_1fr] gap-8">
+          {/* Left Column - Sol Stats HUD */}
+          <div className="space-y-6">
+            {/* Sol Date Card */}
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 shadow-inner">
+              <h3 className="text-xs font-semibold text-orange-200 tracking-widest uppercase mb-4" style={{fontFamily: 'Orbitron, sans-serif'}}>火星时间</h3>
+              <div className="text-2xl font-bold text-white mb-2" style={{fontFamily: 'Orbitron, sans-serif'}}>
+                {formatSolDate(currentSol)}
+              </div>
+              <div className="text-xs text-white/60 tracking-wide">
+                地球时间: {new Date().toLocaleDateString('zh-CN')}
+              </div>
+            </div>
+            
+            {/* Environment Stats */}
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 shadow-inner">
+              <h3 className="text-xs font-semibold text-orange-200 tracking-widest uppercase mb-4" style={{fontFamily: 'Orbitron, sans-serif'}}>环境数据</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-white/60">重力</span>
+                  <span className="text-sm font-mono text-white">0.38g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-white/60">大气压</span>
+                  <span className="text-sm font-mono text-white">0.6 kPa</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-white/60">温度</span>
+                  <span className="text-sm font-mono text-white">-80°C</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-white/60">Sol长度</span>
+                  <span className="text-sm font-mono text-white">24h 37m</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Status Indicator */}
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 shadow-inner">
+              <h3 className="text-xs font-semibold text-orange-200 tracking-widest uppercase mb-4" style={{fontFamily: 'Orbitron, sans-serif'}}>系统状态</h3>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-white/80">通讯链路正常</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Right Column - Diary Input */}
+          <div className="min-w-0">
+            <div className="space-y-6">
+              {/* Input Section */}
+              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 shadow-inner">
+                <h2 className="text-lg font-semibold text-orange-200 tracking-wide mb-4" style={{fontFamily: 'Orbitron, sans-serif'}}>地球日志输入</h2>
+                <textarea
+                  value={earthDiary}
+                  onChange={(e) => setEarthDiary(e.target.value)}
+                  placeholder="写下你今天的经历、感受或想法...\n\n例如：今天和朋友一起去咖啡厅，聊了很久关于未来的计划。虽然外面下着雨，但心情很好。"
+                  className="w-full h-40 p-4 bg-black/30 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-orange-200/60 focus:bg-black/40 resize-none text-sm transition-all duration-200"
+                  style={{fontFamily: 'monospace'}}
+                />
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-4 space-y-3 sm:space-y-0">
+                  <span className="text-white/60 text-xs font-mono">
+                    {earthDiary.length}/20 字符（最少20字符）
+                  </span>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isGenerating || earthDiary.length < 20}
+                    className="bg-orange-200/20 hover:bg-orange-200/30 disabled:bg-white/5 disabled:cursor-not-allowed text-white border border-orange-200/30 px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 text-sm backdrop-blur"
+                    style={{fontFamily: 'Orbitron, sans-serif'}}
+                  >
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -243,14 +292,14 @@ export default function WritePage() {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-900/50 border border-red-500/50 p-4 rounded-lg">
-              <p className="text-red-200">{error}</p>
+            <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl backdrop-blur">
+              <p className="text-red-300 text-sm">{error}</p>
             </div>
           )}
 
           {/* Loading State */}
           {isGenerating && (
-            <div className="bg-black/30 backdrop-blur-sm p-4 sm:p-6 rounded-lg border border-orange-500/20">
+            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 shadow-inner">
               <ProgressiveLoader 
                 isLoading={isGenerating} 
                 stage={generatedContent ? 'complete' : 'generating'}
@@ -258,21 +307,22 @@ export default function WritePage() {
             </div>
           )}
 
-          {/* Generated Content */}
-          {generatedContent && !isGenerating && (
-            <div className="bg-black/30 backdrop-blur-sm p-4 sm:p-6 rounded-lg border border-orange-500/20">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 space-y-3 sm:space-y-0">
-                <h2 className="text-xl sm:text-2xl font-bold text-white">你的火星日记</h2>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving || isGeneratingImage || isSaved}
-                  className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base w-full sm:w-auto ${
-                    isSaved 
-                      ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                      : (isSaving || isGeneratingImage)
-                      ? 'bg-gray-600 text-white cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  }`}
+              {/* Generated Content */}
+              {generatedContent && !isGenerating && (
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 shadow-inner">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 space-y-3 sm:space-y-0">
+                    <h2 className="text-lg font-semibold text-orange-200 tracking-wide" style={{fontFamily: 'Orbitron, sans-serif'}}>火星日志输出</h2>
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving || isGeneratingImage || isSaved}
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 text-sm backdrop-blur border ${
+                      isSaved 
+                        ? 'bg-white/5 text-white/40 cursor-not-allowed border-white/10'
+                        : (isSaving || isGeneratingImage)
+                        ? 'bg-gray-600 text-white cursor-not-allowed border-gray-600'
+                        : 'bg-orange-200/20 hover:bg-orange-200/30 text-white border-orange-200/30'
+                    }`}
+                    style={{fontFamily: 'Orbitron, sans-serif'}}
                 >
                   {isSaving ? (
                     <>
@@ -293,22 +343,27 @@ export default function WritePage() {
                 </button>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                <div className="order-2 lg:order-1">
-                  <div className="bg-orange-900/30 p-3 sm:p-4 rounded-lg mb-4">
-                    <p className="text-orange-200 text-xs sm:text-sm mb-2">今日火星背景：</p>
-                    <p className="text-orange-100 text-xs sm:text-sm">{generatedContent.marsEvent}</p>
-                  </div>
-                  
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-white whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-orange-200 tracking-widest uppercase mb-3" style={{fontFamily: 'Orbitron, sans-serif'}}>火星日记</h3>
+                  <div className="bg-black/30 p-4 rounded-lg border border-white/20">
+                    <p className="text-white whitespace-pre-wrap text-sm leading-relaxed font-mono">
                       {generatedContent.marsDiary}
-                    </div>
+                    </p>
                   </div>
                 </div>
                 
-                <div className="flex flex-col items-center order-1 lg:order-2">
-                  <div className="w-full aspect-square max-w-sm lg:max-w-none bg-black/50 border border-orange-500/30 rounded-lg flex items-center justify-center">
+                <div>
+                  <h3 className="text-sm font-semibold text-orange-200 tracking-widest uppercase mb-3" style={{fontFamily: 'Orbitron, sans-serif'}}>火星事件</h3>
+                  <div className="bg-black/30 p-4 rounded-lg border border-white/20">
+                    <p className="text-white whitespace-pre-wrap text-sm leading-relaxed font-mono">
+                      {generatedContent.marsEvent}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center">
+                  <div className="w-full aspect-video max-w-lg bg-black/50 border border-orange-200/30 rounded-lg flex items-center justify-center">
                     {isGeneratingImage ? (
                       <ImageSkeleton className="w-full h-full" />
                     ) : generatedContent.imageUrl ? (
@@ -324,7 +379,7 @@ export default function WritePage() {
                       />
                     ) : (
                       <div className="text-center p-4">
-                        <ImageIcon className="h-6 w-6 sm:h-8 sm:w-8 text-orange-400 mx-auto mb-2" />
+                        <ImageIcon className="h-6 w-6 sm:h-8 sm:w-8 text-orange-200 mx-auto mb-2" />
                         <p className="text-orange-200 text-xs sm:text-sm">火星场景插图</p>
                       </div>
                     )}
@@ -333,8 +388,11 @@ export default function WritePage() {
               </div>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   )
 }

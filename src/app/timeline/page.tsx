@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Navbar } from '@/components/navbar'
 import { supabase } from '@/lib/supabase'
 import { DiaryEntry } from '@/lib/supabase'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { FullScreenLoading } from '@/components/ui/loading-spinner'
 import { useToast, ToastContainer } from '@/components/ui/toast'
 import { CardSkeleton, ImageSkeleton } from '@/components/ui/skeleton-shimmer'
 
@@ -216,11 +216,7 @@ export default function TimelinePage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-black flex items-center justify-center">
-        <LoadingSpinner text="正在加载火星时间线..." size="lg" />
-      </div>
-    )
+    return <FullScreenLoading text="正在加载火星时间线..." />
   }
 
   if (!isAuthenticated) {
@@ -234,13 +230,28 @@ export default function TimelinePage() {
   const currentDiaries = diaries.slice(startIndex, endIndex)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-black">
+    <>
+      {/* Full-screen background that covers everything including navbar area */}
+      <div className="fixed inset-0 bg-fixed bg-center bg-cover z-0" style={{backgroundImage: 'url(/timeline.png)'}}>
+        {/* Enhanced dark overlay with gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B0E12]/70 via-[#0B0E12]/50 to-[#0B0E12]/80 pointer-events-none" />
+        {/* Subtle noise overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-15" 
+             style={{
+               background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+               mixBlendMode: 'soft-light',
+               maskImage: 'radial-gradient(circle, white, transparent)'
+             }} />
+      </div>
+      
+      <div className="min-h-screen relative z-10">
+      
       {/* Navigation */}
-      <div className="bg-white/10 backdrop-blur-sm">
+      <div className="fixed top-0 left-0 right-0 z-50">
         <Navbar />
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 mt-16">
         {isLoadingDiaries ? (
           // Loading state with skeleton
           <div className="space-y-4">
@@ -253,12 +264,63 @@ export default function TimelinePage() {
               <div className="lg:col-span-2">
                 <CardSkeleton className="h-96" />
               </div>
+
+              {/* Right Sidebar - Only visible on 2xl screens */}
+              <div className="hidden 2xl:block">
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 shadow-[0_0_30px_rgba(0,0,0,0.3)] sticky top-8">
+                  <h3 className="text-lg font-semibold text-[#EFEFEF] mb-4" style={{fontFamily: 'Orbitron, sans-serif'}}>火星统计</h3>
+                  
+                  {/* Sol Stats */}
+                  <div className="space-y-3 mb-6">
+                    <div className="bg-[#E85C35]/10 border border-[#E85C35]/20 p-3 rounded-lg">
+                      <p className="text-[#E85C35] text-xs font-semibold mb-1">当前Sol</p>
+                      <p className="text-[#EFEFEF] text-lg font-bold" style={{fontFamily: 'Orbitron, sans-serif'}}>
+                        {selectedDiary ? formatSolDate(selectedDiary.sol_number || 0) : 'Sol 0,000'}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-500/10 border border-blue-400/20 p-3 rounded-lg">
+                      <p className="text-blue-400 text-xs font-semibold mb-1">总日记数</p>
+                      <p className="text-[#EFEFEF] text-lg font-bold" style={{fontFamily: 'Orbitron, sans-serif'}}>
+                        {diaries.length}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-green-500/10 border border-green-400/20 p-3 rounded-lg">
+                      <p className="text-green-400 text-xs font-semibold mb-1">字符统计</p>
+                      <p className="text-[#EFEFEF] text-lg font-bold" style={{fontFamily: 'Orbitron, sans-serif'}}>
+                        {selectedDiary ? selectedDiary.earth_diary.length + selectedDiary.mars_diary.length : 0}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-[#EFEFEF] mb-2">快速操作</h4>
+                    <Link href="/write" className="block">
+                      <button className="w-full bg-[#E85C35]/20 hover:bg-[#E85C35]/30 border border-[#E85C35]/40 text-[#E85C35] px-3 py-2 rounded-lg transition-all text-sm flex items-center justify-center space-x-2">
+                        <Rocket className="w-4 h-4" />
+                        <span>写新日记</span>
+                      </button>
+                    </Link>
+                    
+                    <button
+                      onClick={() => fetchDiaries(true)}
+                      disabled={isRefreshing}
+                      className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-[#EFEFEF] px-3 py-2 rounded-lg transition-all text-sm flex items-center justify-center space-x-2 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      <span>刷新列表</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : diaries.length === 0 ? (
           // Empty state
           <div className="text-center py-12 md:py-20 px-4">
-            <Calendar className="h-12 w-12 md:h-16 md:w-16 text-orange-400 mx-auto mb-4" />
+            <Calendar className="h-12 w-12 md:h-16 md:w-16 text-orange-200 mx-auto mb-4" />
             <h2 className="text-xl md:text-2xl font-bold text-white mb-2">还没有火星日记</h2>
             <p className="text-orange-200 mb-6 text-sm md:text-base">开始记录你在红色星球上的第一天吧！</p>
             <Link href="/write" className="bg-orange-500 hover:bg-orange-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors text-sm md:text-base">
@@ -270,14 +332,14 @@ export default function TimelinePage() {
             {/* Mobile View: Show either list or detail */}
             <div className="lg:hidden">
               {!selectedDiary ? (
-                /* Mobile Timeline List */
+                /* Small Screen Timeline List */
                 <div className="space-y-3">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-white">日记时间线</h2>
                     <button
                       onClick={() => fetchDiaries(true)}
                       disabled={isRefreshing}
-                      className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-700 text-white p-2 rounded-lg transition-colors flex items-center space-x-1"
+                      className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-700 text-white p-2 rounded-lg transition-colors flex items-center space-x-1"
                       title="刷新日记列表"
                     >
                       <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -290,10 +352,10 @@ export default function TimelinePage() {
                       className="bg-black/30 backdrop-blur-sm p-4 rounded-lg border border-orange-500/20 hover:border-orange-400/50 cursor-pointer transition-all"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-orange-400 font-semibold text-base">
+                        <span className="text-orange-200 font-semibold text-base">
                           {formatSolDate(diary.sol_number || 0)}
                         </span>
-                        <span className="text-orange-300 text-sm">
+                        <span className="text-orange-200/80 text-sm">
                           {new Date(diary.created_at).toLocaleDateString('zh-CN')}
                         </span>
                       </div>
@@ -303,18 +365,18 @@ export default function TimelinePage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {diary.image_url && (
-                            <ImageIcon className="h-4 w-4 text-orange-400" />
+                            <ImageIcon className="h-4 w-4 text-orange-200" />
                           )}
-                          <span className="text-orange-300 text-xs">
+                          <span className="text-orange-200/80 text-xs">
                             {diary.mars_diary.length} 字符
                           </span>
                         </div>
-                        <span className="text-orange-400 text-sm font-medium">查看详情 →</span>
+                        <span className="text-orange-200 text-sm font-medium">查看详情 →</span>
                       </div>
                     </div>
                   ))}
                   
-                  {/* Mobile Pagination */}
+                  {/* Small Screen Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-center space-x-2 mt-6">
                       <button
@@ -338,11 +400,11 @@ export default function TimelinePage() {
                   )}
                 </div>
               ) : (
-                /* Mobile Diary Detail */
+                /* Small Screen Diary Detail */
                 <div>
                   <button
                     onClick={() => setSelectedDiary(null)}
-                    className="mb-4 text-orange-400 hover:text-orange-300 flex items-center space-x-2 transition-colors"
+                    className="mb-4 text-orange-500 hover:text-orange-400 flex items-center space-x-2 transition-colors"
                   >
                     <span>← 返回列表</span>
                   </button>
@@ -351,7 +413,7 @@ export default function TimelinePage() {
                       <h3 className="text-xl font-bold text-white mb-2">
                         {formatSolDate(selectedDiary.sol_number || 0)}
                       </h3>
-                      <p className="text-orange-300 text-sm mb-4">
+                      <p className="text-orange-200/80 text-sm mb-4">
                         {new Date(selectedDiary.created_at).toLocaleDateString('zh-CN', {
                           year: 'numeric',
                           month: 'long',
@@ -373,7 +435,7 @@ export default function TimelinePage() {
                           <div className="absolute top-full left-0 right-0 mt-2 bg-black/90 backdrop-blur-sm border border-orange-500/30 rounded-lg overflow-hidden z-10">
                             <button
                               onClick={() => handleShareText(selectedDiary)}
-                              className="w-full px-4 py-3 text-left text-white hover:bg-orange-500/20 transition-colors flex items-center space-x-2"
+                              className="w-full px-4 py-3 text-left text-white hover:bg-[#BF4A2A]/20 transition-colors flex items-center space-x-2"
                             >
                               <Copy className="h-4 w-4" />
                               <span>分享文字</span>
@@ -381,7 +443,7 @@ export default function TimelinePage() {
                             {selectedDiary.image_url && (
                               <button
                                 onClick={() => handleShareImage(selectedDiary)}
-                                className="w-full px-4 py-3 text-left text-white hover:bg-orange-500/20 transition-colors flex items-center space-x-2 border-t border-orange-500/20"
+                                className="w-full px-4 py-3 text-left text-white hover:bg-[#BF4A2A]/20 transition-colors flex items-center space-x-2 border-t border-[#BF4A2A]/20"
                               >
                                 <Download className="h-4 w-4" />
                                 <span>下载图片</span>
@@ -389,7 +451,7 @@ export default function TimelinePage() {
                             )}
                             <button
                               onClick={() => handleDeleteDiary(selectedDiary)}
-                              className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/20 transition-colors flex items-center space-x-2 border-t border-orange-500/20"
+                              className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/20 transition-colors flex items-center space-x-2 border-t border-[#BF4A2A]/20"
                             >
                               <Trash2 className="h-4 w-4" />
                               <span>删除日记</span>
@@ -400,9 +462,9 @@ export default function TimelinePage() {
                     </div>
 
                     {/* Mars Event */}
-                    <div className="bg-orange-900/30 p-3 rounded-lg mb-4">
+                    <div className="bg-orange-500/30 p-3 rounded-lg mb-4">
                       <p className="text-orange-200 text-xs mb-1">火星背景事件：</p>
-                      <p className="text-orange-100 text-sm">{selectedDiary.mars_event}</p>
+                      <p className="text-white/90 text-sm">{selectedDiary.mars_event}</p>
                     </div>
 
                     {/* Original Earth Diary - Collapsible */}
@@ -430,18 +492,18 @@ export default function TimelinePage() {
                     {/* Mars Diary */}
                     <div className="mb-4">
                       <h4 className="text-base font-semibold text-white mb-2">火星日记</h4>
-                      <div className="bg-orange-900/20 p-3 rounded-lg border border-orange-500/20">
-                        <p className="text-orange-100 whitespace-pre-wrap leading-relaxed text-sm">
+                      <div className="bg-orange-500/20 p-3 rounded-lg border border-orange-500/20">
+                        <p className="text-white/90 whitespace-pre-wrap leading-relaxed text-sm">
                           {selectedDiary.mars_diary}
                         </p>
                       </div>
                     </div>
 
                     {/* Image */}
-                    {selectedDiary.image_url && (
-                      <div>
-                        <h4 className="text-base font-semibold text-white mb-2">火星场景</h4>
-                        <div className="aspect-video bg-black/50 border border-orange-500/30 rounded-lg overflow-hidden">
+                        {selectedDiary.image_url && (
+                          <div>
+                            <h4 className="text-base font-semibold text-white mb-2">火星场景</h4>
+                            <div className="aspect-video bg-black/50 border border-orange-500/30 rounded-lg overflow-hidden">
                           <img
                             src={`/api/proxy-image?imageUrl=${encodeURIComponent(selectedDiary.image_url)}`}
                             alt="火星场景"
@@ -460,87 +522,104 @@ export default function TimelinePage() {
               )}
             </div>
 
-            {/* Desktop View: Side by side layout */}
-            <div className="hidden lg:grid lg:grid-cols-3 gap-8">
-              {/* Timeline List */}
-              <div className="lg:col-span-1 space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">日记时间线</h2>
-                  <button
-                    onClick={() => fetchDiaries(true)}
-                    disabled={isRefreshing}
-                    className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-700 text-white p-2 rounded-lg transition-colors flex items-center space-x-1"
-                    title="刷新日记列表"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  </button>
+            {/* Desktop View: Two-column layout from lg screens and up, Three-column on 2xl */}
+            <div className="hidden lg:grid 2xl:grid-cols-[20rem_1fr_15rem] lg:grid-cols-[20rem_1fr] gap-8">
+              {/* Timeline List - Left Column */}
+              <div className="h-[calc(100vh-8rem)] overflow-y-auto space-y-4">
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 shadow-inner sticky top-0 z-10">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-[#EFEFEF]" style={{fontFamily: 'Orbitron, sans-serif'}}>火星时间线</h2>
+                    <button
+                      onClick={() => fetchDiaries(true)}
+                      disabled={isRefreshing}
+                      className="bg-[#E85C35]/90 hover:bg-[#E85C35] hover:shadow-[0_0_15px_#E85C35]/40 disabled:bg-gray-700 text-white p-2 rounded-lg transition-all hover:-translate-y-0.5 flex items-center space-x-1"
+                      title="刷新日记列表"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                  <Link href="/write" className="mt-3 block">
+                    <button className="w-full bg-white/5 backdrop-blur border border-white/10 hover:border-[#E85C35]/40 hover:-translate-y-1 hover:shadow-[0_0_15px_#E85C35]/20 text-white px-4 py-2 rounded-lg transition-all text-sm">
+                      <Rocket className="w-4 h-4 mr-2 inline" />
+                      写新日记
+                    </button>
+                  </Link>
                 </div>
                 {currentDiaries.map((diary) => (
                   <div
                     key={diary.id}
                     onClick={() => setSelectedDiary(diary)}
-                    className={`bg-black/30 backdrop-blur-sm p-4 rounded-lg border cursor-pointer transition-all ${
+                    className={`bg-white/5 backdrop-blur border rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 ${
                       selectedDiary?.id === diary.id
-                        ? 'border-orange-400 bg-orange-900/20'
-                        : 'border-orange-500/20 hover:border-orange-400/50'
+                        ? 'border-l-4 border-l-[#E85C35] border-white/20 bg-white/10 shadow-[0_0_15px_#E85C35]/20'
+                        : 'border-white/10 hover:border-[#E85C35]/40 hover:shadow-[0_0_15px_#E85C35]/10'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-orange-400 font-semibold text-base">
+                      <span className="text-[#E85C35]/90 font-semibold text-sm" style={{fontFamily: 'Orbitron, sans-serif'}}>
                         {formatSolDate(diary.sol_number || 0)}
                       </span>
-                      <span className="text-orange-300 text-sm">
+                      <span className="text-[#9CA3AF] text-xs flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
                         {new Date(diary.created_at).toLocaleDateString('zh-CN')}
                       </span>
                     </div>
-                    <p className="text-white text-sm line-clamp-2">
+                    <p className="text-[#EFEFEF] text-xs line-clamp-2 mb-2">
                       {diary.earth_diary}
                     </p>
-                    <div className="flex items-center mt-2 space-x-2">
-                      {diary.image_url && (
-                        <ImageIcon className="h-4 w-4 text-orange-400" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {diary.image_url && (
+                          <ImageIcon className="h-3 w-3 text-[#E85C35]" />
+                        )}
+                        <span className="text-[#9CA3AF] text-xs">
+                          {diary.mars_diary.length} 字符
+                        </span>
+                      </div>
+                      {selectedDiary?.id === diary.id && (
+                        <div className="w-2 h-2 bg-[#E85C35] rounded-full animate-pulse"></div>
                       )}
-                      <span className="text-orange-300 text-xs">
-                        {diary.mars_diary.length} 字符
-                      </span>
                     </div>
                   </div>
                 ))}
                 
                 {/* Desktop Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center space-x-2 mt-6">
-                    <button
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span className="text-white text-sm">
-                      {currentPage} / {totalPages}
-                    </span>
-                    <button
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                  <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4">
+                    <div className="flex items-center justify-center space-x-2">
+                      <button
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="bg-[#E85C35]/90 hover:bg-[#E85C35] hover:shadow-[0_0_15px_#E85C35]/40 disabled:bg-gray-600 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all hover:-translate-y-0.5"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="text-[#EFEFEF] text-sm font-mono tabular-nums">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="bg-[#E85C35]/90 hover:bg-[#E85C35] hover:shadow-[0_0_15px_#E85C35]/40 disabled:bg-gray-600 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-all hover:-translate-y-0.5"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Diary Detail */}
-              <div className="lg:col-span-2">
+              {/* Diary Detail - Middle Column */}
+              <div className="lg:col-span-1 2xl:col-span-1">
                 {selectedDiary ? (
-                  <div className="bg-black/30 backdrop-blur-sm p-6 rounded-lg border border-orange-500/20">
+                  <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 space-y-3 sm:space-y-0">
                       <div>
-                        <h3 className="text-2xl font-bold text-white mb-2">
+                        <h3 className="text-2xl font-bold text-[#EFEFEF] mb-2" style={{fontFamily: 'Orbitron, sans-serif'}}>
                           {formatSolDate(selectedDiary.sol_number || 0)}
                         </h3>
-                        <p className="text-orange-300 text-base">
+                        <p className="text-[#9CA3AF] text-sm flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
                           {new Date(selectedDiary.created_at).toLocaleDateString('zh-CN', {
                             year: 'numeric',
                             month: 'long',
@@ -553,17 +632,17 @@ export default function TimelinePage() {
                       <div className="relative">
                         <button
                           onClick={() => setShowShareOptions(!showShareOptions)}
-                          className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 text-base w-full sm:w-auto"
+                          className="bg-[#E85C35]/90 hover:bg-[#E85C35] hover:shadow-[0_0_15px_#E85C35]/40 text-white px-4 py-2 rounded-lg font-semibold transition-all hover:-translate-y-0.5 flex items-center justify-center space-x-2 text-sm w-full sm:w-auto"
                         >
                           <Share2 className="h-4 w-4" />
                           <span>分享</span>
                           <ChevronDown className={`h-4 w-4 transition-transform ${showShareOptions ? 'rotate-180' : ''}`} />
                         </button>
                         {showShareOptions && (
-                          <div className="absolute top-full right-0 mt-2 bg-black/90 backdrop-blur-sm border border-orange-500/30 rounded-lg overflow-hidden z-10 min-w-[160px]">
+                          <div className="absolute top-full right-0 mt-2 bg-black/90 backdrop-blur border border-white/20 rounded-xl overflow-hidden z-10 min-w-[160px] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                             <button
                               onClick={() => handleShareText(selectedDiary)}
-                              className="w-full px-4 py-3 text-left text-white hover:bg-orange-500/20 transition-colors flex items-center space-x-2"
+                              className="w-full px-4 py-3 text-left text-[#EFEFEF] hover:bg-[#E85C35]/20 transition-colors flex items-center space-x-2"
                             >
                               <Copy className="h-4 w-4" />
                               <span>分享文字</span>
@@ -571,7 +650,7 @@ export default function TimelinePage() {
                             {selectedDiary.image_url && (
                               <button
                                 onClick={() => handleShareImage(selectedDiary)}
-                                className="w-full px-4 py-3 text-left text-white hover:bg-orange-500/20 transition-colors flex items-center space-x-2 border-t border-orange-500/20"
+                                className="w-full px-4 py-3 text-left text-[#EFEFEF] hover:bg-[#E85C35]/20 transition-colors flex items-center space-x-2 border-t border-white/10"
                               >
                                 <Download className="h-4 w-4" />
                                 <span>下载图片</span>
@@ -583,27 +662,33 @@ export default function TimelinePage() {
                     </div>
 
                     {/* Mars Event */}
-                    <div className="bg-orange-900/30 p-4 rounded-lg mb-6">
-                      <p className="text-orange-200 text-sm mb-1">火星背景事件：</p>
-                      <p className="text-orange-100 text-base">{selectedDiary.mars_event}</p>
+                    <div className="bg-gradient-to-r from-[#E85C35]/20 to-[#E85C35]/10 border border-[#E85C35]/30 p-4 rounded-xl mb-6 shadow-[0_0_15px_#E85C35]/10">
+                      <p className="text-[#E85C35] text-sm mb-2 font-semibold flex items-center gap-2">
+                        <Rocket className="w-4 h-4" />
+                        火星背景事件
+                      </p>
+                      <p className="text-[#EFEFEF] text-sm leading-relaxed">{selectedDiary.mars_event}</p>
                     </div>
 
                     {/* Original Earth Diary - Collapsible */}
                     <div className="mb-6">
                       <button
                         onClick={() => setIsEarthDiaryExpanded(!isEarthDiaryExpanded)}
-                        className="flex items-center justify-between w-full text-left mb-3 text-lg font-semibold text-white hover:text-orange-300 transition-colors"
+                        className="flex items-center justify-between w-full text-left mb-3 text-base font-semibold text-[#EFEFEF] hover:text-[#E85C35] transition-colors bg-white/5 p-3 rounded-lg border border-white/10"
                       >
-                        <span>地球日记原文</span>
+                        <span className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          地球日记原文
+                        </span>
                         {isEarthDiaryExpanded ? (
-                          <ChevronUp className="h-5 w-5" />
+                          <ChevronUp className="h-4 w-4" />
                         ) : (
-                          <ChevronDown className="h-5 w-5" />
+                          <ChevronDown className="h-4 w-4" />
                         )}
                       </button>
                       {isEarthDiaryExpanded && (
-                        <div className="bg-blue-900/20 p-4 rounded-lg border border-blue-500/20">
-                          <p className="text-blue-100 whitespace-pre-wrap leading-relaxed text-base">
+                        <div className="bg-blue-500/10 border border-blue-400/20 p-4 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                          <p className="text-blue-100 whitespace-pre-wrap leading-relaxed text-sm">
                             {selectedDiary.earth_diary}
                           </p>
                         </div>
@@ -612,9 +697,12 @@ export default function TimelinePage() {
 
                     {/* Mars Diary */}
                     <div className="mb-6">
-                      <h4 className="text-lg font-semibold text-white mb-3">火星日记</h4>
-                      <div className="bg-orange-900/20 p-4 rounded-lg border border-orange-500/20">
-                        <p className="text-orange-100 whitespace-pre-wrap leading-relaxed text-base">
+                      <h4 className="text-base font-semibold text-[#EFEFEF] mb-3 flex items-center gap-2">
+                        <Rocket className="w-4 h-4 text-[#E85C35]" />
+                        火星日记
+                      </h4>
+                      <div className="bg-gradient-to-br from-[#E85C35]/10 to-[#E85C35]/5 border border-[#E85C35]/20 p-4 rounded-xl shadow-[0_0_15px_#E85C35]/10">
+                        <p className="text-[#EFEFEF] whitespace-pre-wrap leading-relaxed text-sm">
                           {selectedDiary.mars_diary}
                         </p>
                       </div>
@@ -623,12 +711,15 @@ export default function TimelinePage() {
                     {/* Image */}
                     {selectedDiary.image_url && (
                       <div>
-                        <h4 className="text-lg font-semibold text-white mb-3">火星场景</h4>
-                        <div className="aspect-video bg-black/50 border border-orange-500/30 rounded-lg overflow-hidden">
+                        <h4 className="text-base font-semibold text-[#EFEFEF] mb-3 flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4 text-[#E85C35]" />
+                          火星场景
+                        </h4>
+                        <div className="aspect-video bg-black/30 border border-[#E85C35]/30 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                           <img
                             src={`/api/proxy-image?imageUrl=${encodeURIComponent(selectedDiary.image_url)}`}
                             alt="火星场景"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
                               if (selectedDiary.image_url) {
                                 e.currentTarget.src = selectedDiary.image_url
@@ -640,10 +731,10 @@ export default function TimelinePage() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-black/30 backdrop-blur-sm p-12 rounded-lg border border-orange-500/20 text-center">
-                    <Calendar className="h-12 w-12 text-orange-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">选择一篇日记</h3>
-                    <p className="text-orange-200 text-base">点击左侧的日记条目来查看详细内容</p>
+                  <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-12 text-center shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+                    <Calendar className="h-12 w-12 text-[#E85C35] mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-[#EFEFEF] mb-2" style={{fontFamily: 'Orbitron, sans-serif'}}>选择一篇日记</h3>
+                    <p className="text-[#9CA3AF] text-sm">点击左侧的日记条目来查看详细内容</p>
                   </div>
                 )}
               </div>
@@ -652,6 +743,7 @@ export default function TimelinePage() {
         )}
       </main>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      </div>
+    </>
   )
 }
