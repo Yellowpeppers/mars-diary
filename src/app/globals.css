@@ -195,3 +195,8 @@ img {
   max-width: 100%;
   height: auto;
 }
+
+/* 自定义placeholder样式支持换行 */
+.custom-placeholder::placeholder {
+  white-space: pre-line;
+}

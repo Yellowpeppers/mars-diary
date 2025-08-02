@@ -240,7 +240,7 @@ export default function WritePage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-white/60">Sol长度</span>
-                  <span className="text-sm font-mono text-white">24h 37m</span>
+                  <span className="text-sm font-mono text-white">24h 39m</span>
                 </div>
               </div>
             </div>
@@ -264,8 +264,10 @@ export default function WritePage() {
                 <textarea
                   value={earthDiary}
                   onChange={(e) => setEarthDiary(e.target.value)}
-                  placeholder="写下你今天的经历、感受或想法...\n\n例如：今天和朋友一起去咖啡厅，聊了很久关于未来的计划。虽然外面下着雨，但心情很好。"
-                  className="w-full h-40 p-4 bg-black/30 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-orange-200/60 focus:bg-black/40 resize-none text-sm transition-all duration-200"
+                  placeholder={`写下你今天的经历、感受或想法...
+
+例如：今天和朋友一起去咖啡厅，聊了很久关于未来的计划。虽然外面下着雨，但心情很好。`}
+                  className="w-full h-40 p-4 bg-black/30 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-orange-200/60 focus:bg-black/40 resize-none text-sm transition-all duration-200 custom-placeholder"
                   style={{fontFamily: 'monospace'}}
                 />
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-4 space-y-3 sm:space-y-0">
